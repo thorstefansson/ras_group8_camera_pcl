@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   roscpp
   sensor_msgs
+  std_msgs
 )
 find_package(PCL 1.3 REQUIRED)
 
@@ -144,7 +145,7 @@ add_definitions(${PCL_DEFINITIONS})
 
 add_executable(example_voxelgrid src/example_voxelgrid.cpp)
 add_executable(example_planarsegmentation src/example_planarsegmentation.cpp)
-add_executable (segmentation src/segmentation.cpp)
+
 add_executable (outlier_removal src/outlier_removal.cpp)
 #add_executable (cluster_extraction src/cluster_extraction.cpp)
 
@@ -164,7 +165,7 @@ add_executable (outlier_removal src/outlier_removal.cpp)
 # )
 target_link_libraries(example_voxelgrid ${catkin_LIBRARIES})
 target_link_libraries(example_planarsegmentation ${catkin_LIBRARIES})
-target_link_libraries (segmentation ${PCL_LIBRARIES})
+
 target_link_libraries (outlier_removal ${catkin_LIBRARIES})
 #target_link_libraries (cluster_extraction ${catkin_LIBRARIES})
 #target_link_libraries (cluster_extraction ${PCL_LIBRARIES})

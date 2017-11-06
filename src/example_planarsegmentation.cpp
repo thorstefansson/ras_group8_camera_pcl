@@ -23,6 +23,19 @@
 #include <pcl/segmentation/extract_clusters.h>
 #include <boost/lexical_cast.hpp>
 
+//for printing:
+#include <stdio.h>
+#include<iostream>
+#include <stdlib.h>
+
+//for publicing center as multiarray: ,... maybe not all needed
+#include <stdio.h>
+#include <stdlib.h>
+#include "std_msgs/MultiArrayLayout.h"
+#include "std_msgs/MultiArrayDimension.h"
+#include "std_msgs/Int32MultiArray.h"
+
+using namespace std;
 
 typedef pcl::PointXYZRGBA PointT;
 
@@ -32,9 +45,15 @@ ros::Publisher pub_cloud;
 // ros::Publisher pub;
 std::vector<ros::Publisher> pub_vec;
 
+//NEW:
+ros::Publisher pub_center_point;
+
 void
 cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
+
+    printf("asdf");
+    ROS_INFO("AAAAAAAAAAAAAAAAAaa");
 
     //OLD PROGRAM:
     /*
@@ -172,7 +191,7 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   //pcl_conversions::toROSMsg(cloud_outliers, filtered_cloud);
   pcl::toROSMsg(cloud_outliers, filtered_cloud);
   pub_cloud.publish(filtered_cloud);
-  //ROS_INFO("%i",filtered_cloud.height);
+  ROS_INFO("%i",filtered_cloud.height);
 
   pub.publish (ros_coefficients);
 
@@ -217,6 +236,8 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
   ros::NodeHandle nh;
 
+
+  cout <<"hello"<< endl;
   //Create a publisher for each cluster
   for (int i = 0; i < cluster_indices.size(); ++i)
   {
@@ -229,14 +250,53 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   }
 
   int j = 0;
+
   for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
   {
       pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
       for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); pit++)
           cloud_cluster->points.push_back (downsampled_XYZ.points[*pit]); //*
+          //try to print middle point
+
+          /*if(pit == it->indices.end() - it->indices.begin() && it == cluster_indices.begin())
+          {
+              pcl::PointXYZ point;
+              int x=point.x;
+              int y = point.y;
+              int z= point.z;
+              std::cout <<"x = " << x <<"  " << "y = " << y <<"  "<<"z = " << z << std::endl;
+
+          }*/
+            
+
+
+      pcl::PointXYZ point = cloud_cluster->points[cloud_cluster->points.size () / 2];//.at(0,20);//.at<pcl:>(y,x);
+      int x=point.x;
+      int y = point.y;
+      int z= point.z;
+      //this printing is not working....
+      std::cout <<"x = " << x <<"  " << "y = " << y <<"  "<<"z = " << z << std::endl;
+      ROS_ERROR_STREAM("x = " << x <<"  " << "y = " << y <<"  "<<"z = " << z << endl);
+      ROS_INFO("ADSFASDF");
+      std_msgs::Int32MultiArray array;
+      array.data.clear();
+
+      array.data.push_back(x);
+      array.data.push_back(y);
+      array.data.push_back(z);
+      pub_center_point.publish(array);
+
+
+
+
       cloud_cluster->width = cloud_cluster->points.size ();
       cloud_cluster->height = 1;
       cloud_cluster->is_dense = true;
+
+      //int x=point.x;
+      //int y = point.y;
+      //int z= point.z;
+      //std::cout <<"x = " << x <<"  " << "y = " << y <<"  "<<"z = " << z << std::endl;
 
       // std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
 
@@ -251,7 +311,10 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       //ROS_INFO("%i", *output.height);
 
       ++j;
-  }
+          }
+
+
+
 
 
 
@@ -272,6 +335,12 @@ main (int argc, char** argv)
 
   // Create a ROS publisher for the output point cloud
   pub_cloud = nh.advertise<sensor_msgs::PointCloud2> ("filtered_cloud", 1);
+
+  //Create publisher for publishing center point:
+  //pub_center_point = nh.advertise<pcl::PointXYZ> ("pcl_point", 1);
+  pub_center_point = nh.advertise<std_msgs::Int32MultiArray>("pcl_center_of_object", 1);
+
+
 
   // Spin
   ros::spin ();
