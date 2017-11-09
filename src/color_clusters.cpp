@@ -284,8 +284,8 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   //if lying down, floor can be a smaller plane.
   ec.setMinClusterSize (60);
 
-  //Maximum size for colored objects to pick up around 160 points.
-  ec.setMaxClusterSize (200);  //25000 original
+  //Maximum size for colored objects to pick up around 220 points.
+  ec.setMaxClusterSize (500);  //25000 original
   ec.setSearchMethod (tree);
   ec.setInputCloud (downsampled_XYZ.makeShared());
 
@@ -361,7 +361,9 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
         V = point.v;
 
         //change this depending on color to remove outliers:
-        if (count==0 && abs(115-H < 20)){
+        // 115 for dark green, 180 for light blue,
+        //if (count==0 && abs(115-H < 20)){
+        if (count==0){
         //write training data to files
         Hfile << ToString(H) << endl;
         Sfile << ToString(S) << endl;

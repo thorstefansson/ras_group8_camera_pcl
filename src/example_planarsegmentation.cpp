@@ -174,7 +174,7 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   ec.setMinClusterSize (60);
 
   //Maximum size for colored objects to pick up around 160 points.
-  ec.setMaxClusterSize (200);  //25000 original
+  ec.setMaxClusterSize (500);  //25000 original
   ec.setSearchMethod (tree);
   ec.setInputCloud (downsampled_XYZ.makeShared());
 
