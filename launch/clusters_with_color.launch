@@ -21,7 +21,7 @@
 
 
 <!--Start planar segmentation node -->
-<node pkg="ras_group8_camera_pcl" type="example_planarsegmentation" name="ras_group8_planarsegmentation" output="screen">
+<node pkg="ras_group8_camera_pcl" type="clusters_with_colors" name="ras_group8_clusters_with_color" output="screen">
     
 <remap from="input" to="/voxel_points"/>
   </node>

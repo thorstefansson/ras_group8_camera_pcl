@@ -1,0 +1,11 @@
+<launch>
+
+  <!-- Launch RAS Group 8 Template Node -->
+  <node pkg="ras_group8_camera_pcl"
+       type="record"
+       name="recorder"
+     output="screen">
+    <rosparam command="load" file="$(find ras_group8_camera_pcl)/config/default.yaml" />
+  </node>
+
+</launch>
