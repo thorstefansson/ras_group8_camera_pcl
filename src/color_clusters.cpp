@@ -361,7 +361,7 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
         V = point.v;
 
         //change this depending on color to remove outliers:
-        // 115 for dark green, 180 for light blue,
+        // 115 for dark green, 130 for light green, 180 for light blue,20 for orange, 38 for yellow, 230 purple, 350-10 for red
         //if (count==0 && abs(115-H < 20)){
         if (count==0){
         //write training data to files
