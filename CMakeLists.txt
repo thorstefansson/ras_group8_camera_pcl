@@ -121,8 +121,8 @@ if(FLANN_CFLAGS)
    add_definitions(${FLANN_CFLAGS})
  endif(FLANN_CFLAGS)
 
-find_package(HDF5 REQUIRED)
-include_directories(${HDF5_INCLUDE_DIR})
+#find_package(HDF5 REQUIRED)
+#include_directories(${HDF5_INCLUDE_DIR})
 
 
 catkin_package(
@@ -167,8 +167,8 @@ add_executable(example_voxelgrid src/example_voxelgrid.cpp)
 add_executable(example_planarsegmentation src/example_planarsegmentation.cpp)
 add_executable (segmentation src/segmentation.cpp)
 add_executable (outlier_removal src/outlier_removal.cpp)
-add_executable(record src/record.cpp)
-add_executable(recognition src/recognization.cpp)
+#add_executable(record src/record.cpp)
+#add_executable(recognition src/recognization.cpp)
 add_executable(color_clusters src/color_clusters.cpp)
 #add_executable (cluster_extraction src/cluster_extraction.cpp)
 
@@ -191,8 +191,8 @@ target_link_libraries(example_planarsegmentation ${catkin_LIBRARIES})
 target_link_libraries(color_clusters ${catkin_LIBRARIES})
 target_link_libraries (segmentation ${PCL_LIBRARIES})
 target_link_libraries (outlier_removal ${catkin_LIBRARIES})
-target_link_libraries(record ${catkin_LIBRARIES})
-target_link_libraries(recognition ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FLANN_LIBRARIES} ${HDF5_hdf5_LIBRARY} ${catkin_LIBRARIES})
+#target_link_libraries(record ${catkin_LIBRARIES})
+#target_link_libraries(recognition ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FLANN_LIBRARIES} ${HDF5_hdf5_LIBRARY} ${catkin_LIBRARIES})
 #target_link_libraries (cluster_extraction ${catkin_LIBRARIES})
 #target_link_libraries (cluster_extraction ${PCL_LIBRARIES})
 

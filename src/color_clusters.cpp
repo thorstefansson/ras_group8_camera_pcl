@@ -285,7 +285,7 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   ec.setMinClusterSize (60);
 
   //Maximum size for colored objects to pick up around 220 points.
-  ec.setMaxClusterSize (500);  //25000 original
+  ec.setMaxClusterSize (500);  //25000 original. can use 500 for objects..
   ec.setSearchMethod (tree);
   ec.setInputCloud (downsampled_XYZ.makeShared());
 
@@ -343,9 +343,11 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
       //For getting training data:
       ofstream Hfile;
-      Hfile.open("/home/ras18/catkin_ws/src/ras_group8/ras_group8_camera1/pcl_data_for_color_classification/orange_H.dat", fstream::app);
+      Hfile.open("/home/ras28/catkin_ws/src/ras_group8/ras_group8_camera1/pcl_data_for_color_classification/test_data/purple_H.dat", fstream::app);
       ofstream Sfile;
-      Sfile.open("/home/ras18/catkin_ws/src/ras_group8/ras_group8_camera1/pcl_data_for_color_classification/orange_S.dat", fstream::app);
+      Sfile.open("/home/ras28/catkin_ws/src/ras_group8/ras_group8_camera1/pcl_data_for_color_classification/test_data/purple_S.dat", fstream::app);
+
+      //in the dark already did: purple, red, orange,yellow, both blue, both green
 
       int size = cloud_cluster->points.size () ;
       for (int i=0;i<cloud_cluster->points.size () ; i++)
@@ -445,7 +447,7 @@ main (int argc, char** argv)
 
 
   //Slower loop rate perhaps when training:
-  ros::Rate loop_rate(0.3);
+  ros::Rate loop_rate(2);
   for (;;) {
       ros::spinOnce();
       loop_rate.sleep();
