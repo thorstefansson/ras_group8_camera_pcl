@@ -11,6 +11,7 @@
 #include <pcl/io/pcd_io.h>
 #include <boost/lexical_cast.hpp>
 #include "string"
+#include <std_msgs/String.h>
 
 class recordPC
 {
@@ -18,6 +19,10 @@ public:
 	ros::NodeHandle& nodeHandle_;
 
   	ros::Subscriber PCsub_;
+  	ros::Subscriber name_;
+
+  	pcl::PointCloud<pcl::VFHSignature308>::Ptr body_vfhs ;
+  	pcl::PointCloud<pcl::PointXYZ>::Ptr body_cloud ;
 
   	
 
@@ -31,10 +36,16 @@ public:
 	 //    ROS_ERROR("Could not read parameters.");
 	 //    ros::requestShutdown();
 	 //  }
-		maxsample=20;
-		modname="Cube";
+		// maxsample=50;
+		// modname="Holcu";
 	  count=0;
 	  PCsub_=nodeHandle_.subscribe("/pcl_tut/cluster0",1,&recordPC::recordCB,this);
+	  name_=nodeHandle_.subscribe("/record_commend",1,&recordPC::nameCB,this);
+	  body_vfhs= pcl::PointCloud<pcl::VFHSignature308>::Ptr(new pcl::PointCloud<pcl::VFHSignature308> ());
+	  body_cloud= pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>);
+
+
+
 	  ROS_INFO("Successfully launchednode.");
 
 
@@ -42,6 +53,7 @@ public:
 	}
 	virtual ~recordPC()
 	{
+		
 	}
 
 	
@@ -59,10 +71,28 @@ public:
 
 	// }
 
+	void nameCB(const std_msgs::StringPtr& input)
+	{
+		std::string classname=input->data;
+		std::stringstream ss;
+		ss<<"/home/ras18/catkin_ws/src/ras_group8/ras_group8_camera_pcl/data/"<<classname<<"/cloud_cluster_"<<classname<<"_"<<count<<".pcd";
+		std::stringstream vss;
+		vss<<"/home/ras18/catkin_ws/src/ras_group8/ras_group8_camera_pcl/data/"<<classname<<"/cloud_cluster_"<<classname<<"_"<<count<<"_vfh"<<".pcd";
+		pcl::io::savePCDFileASCII (ss.str(), *body_cloud);
+		pcl::io::savePCDFileASCII (vss.str(), *body_vfhs);
+		//writer.write<pcl::PointXYZ>(ss.str(),cloud,false);
+		//printf(modname.c_str());
+		// for (size_t i = 0; i < cloud.points.size (); ++i)
+//  			std::cerr << "    " << cloud.points[i].x << " " << cloud.points[i].y << " " << cloud.points[i].z << std::endl;
+		ROS_INFO("record success ,%d",count);
+		count++;
+
+	}
+
 	void recordCB(const sensor_msgs::PointCloud2ConstPtr& input)
 	{
-		if(count<maxsample)
-		{
+		// if(count<maxsample)
+		// {
 			//pcl::PCDWriter writer;
 			pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
 			//pcl::PointCloud<pcl::PointXYZ> cloud;
@@ -91,22 +121,25 @@ public:
 			  // Compute the features
 			vfh.compute (*vfhs);
 
+			*body_vfhs=*vfhs;
+			*body_cloud=*cloud;
 
 
-			std::stringstream ss;
-			ss<<"cloud_cluster_"<<modname<<"_"<<count<<".pcd";
-			std::stringstream vss;
-			vss<<"cloud_cluster_"<<modname<<"_"<<count<<"_vfh"<<".pcd";
-			pcl::io::savePCDFileASCII (ss.str(), *cloud);
-			pcl::io::savePCDFileASCII (vss.str(), *vfhs);
-			//writer.write<pcl::PointXYZ>(ss.str(),cloud,false);
-			//printf(modname.c_str());
-			// for (size_t i = 0; i < cloud.points.size (); ++i)
-   //  			std::cerr << "    " << cloud.points[i].x << " " << cloud.points[i].y << " " << cloud.points[i].z << std::endl;
-			ROS_INFO("record success ,%d",count);
-			count++;
 
-		}
+			// std::stringstream ss;
+			// ss<<"cloud_cluster_"<<modname<<"_"<<count<<".pcd";
+			// std::stringstream vss;
+			// vss<<"cloud_cluster_"<<modname<<"_"<<count<<"_vfh"<<".pcd";
+			// pcl::io::savePCDFileASCII (ss.str(), *cloud);
+			// pcl::io::savePCDFileASCII (vss.str(), *vfhs);
+			// //writer.write<pcl::PointXYZ>(ss.str(),cloud,false);
+			// //printf(modname.c_str());
+			// // for (size_t i = 0; i < cloud.points.size (); ++i)
+   // //  			std::cerr << "    " << cloud.points[i].x << " " << cloud.points[i].y << " " << cloud.points[i].z << std::endl;
+			// ROS_INFO("record success ,%d",count);
+			//count++;
+
+		//}
 		
 
 	}

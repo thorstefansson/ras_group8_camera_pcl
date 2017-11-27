@@ -46,6 +46,8 @@
   <build_depend>sensor_msgs</build_depend>
   <build_depend>libpcl-all-dev</build_depend>
   <build_depend>geometry_msgs</build_depend>
+  <build_depend>ras_group8_brain</build_depend>
+
 
   <run_depend>libpcl-all</run_depend>
   <run_depend>pcl_conversions</run_depend>
@@ -53,6 +55,8 @@
   <run_depend>roscpp</run_depend>
   <run_depend>sensor_msgs</run_depend>
   <run_depend>geometry_msgs</run_depend>
+  <run_depend>ras_group8_brain</run_depend>
+
 
 
 

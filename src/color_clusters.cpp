@@ -56,8 +56,8 @@ std::vector<ros::Publisher> pub_vec;
 
 //NEW:
 ros::Publisher pub_center_point;
-
-
+//for many centers:
+std::vector<ros::Publisher> pub_vec_centers;
 
 using namespace pcl;
 
@@ -163,14 +163,14 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   //std::cout <<"HSV cloud size" << cloud.size() << std::endl;*/
 
 
+
+  //FILTERING OUT LARGEST PLANE:
   pcl :: ModelCoefficients :: Ptr
   coefficients (new
   pcl :: ModelCoefficients  ());
 
   pcl :: PointIndices :: Ptr  inliers
   (new pcl :: PointIndices  ());
-
-
 
   // Create the segmentation object
   //pcl::SACSegmentation<pcl::PointXYZ> seg;
@@ -180,9 +180,6 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
   //HSV values:
   pcl::SACSegmentation<pcl::PointXYZHSV> seg;
-
-
-
 
   // Optional
   seg.setOptimizeCoefficients (true);
@@ -199,8 +196,6 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   //seg.segment (inliers, coefficients);
   //Try:
   seg.segment (*inliers, *coefficients);
-
-
 
   // Create the filtering object
   //pcl::ExtractIndices<pcl::PointXYZ> extract;
@@ -299,12 +294,21 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   //Create a publisher for each cluster
   for (int i = 0; i < cluster_indices.size(); ++i)
   {
-      std::string topicName = "/pcl_tut/cluster" + boost::lexical_cast<std::string>(i);
-
+      std::string topicName = "/pcl/cluster" + boost::lexical_cast<std::string>(i);
 
       ros::Publisher pub = nh.advertise<sensor_msgs::PointCloud2> (topicName, 1);
 
       pub_vec.push_back(pub);
+
+      //TRY TO PUBLISH ALL CENTER POINTS:
+
+      topicName = "/pcl/cluster_center" + boost::lexical_cast<std::string>(i);
+
+      pub_center_point = nh.advertise<geometry_msgs::PointStamped>(topicName, 1);
+
+      pub_vec_centers.push_back(pub_center_point);
+
+
   }
 
   int j = 0;
@@ -390,7 +394,8 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       std::cout <<"x = " << x <<"  " << "y = " << y <<"  "<<"z = " << z << std::endl;
       std::cout <<"size = " << size << std::endl;
 
-      if (count==0){
+      //TRY TO PUBLISH ALL CLUSTER CENTERS:
+      //if (count==0){
       //std::cout<<"startpublished"<<std::endl;
       geometry_msgs::PointStamped msg;
       //msg.header.frame_id="/camera_depth_optical_frame";
@@ -398,10 +403,11 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       msg.point.x=x;
       msg.point.y=y;
       msg.point.z=z;
-
-      pub_center_point.publish(msg);
+      pub_vec_centers[j].publish(msg);
+      //pub_center_point.publish(msg);
       std::cout<<"published"<<std::endl;
-      }
+      //}
+
       //int x=point.x;
       //int y = point.y;
       //int z= point.z;
@@ -417,6 +423,7 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
       // Publish the data
       pub_vec[j].publish (output);
+
       //ROS_INFO("%i", *output.height);
 
       ++j;

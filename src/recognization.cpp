@@ -12,6 +12,7 @@
 #include <boost/lexical_cast.hpp>
 #include "string"
 #include <std_msgs/String.h>
+#include "std_msgs/Float32MultiArray.h"
 
 #include <pcl/common/common.h>
 #include <pcl/common/transforms.h>
@@ -31,41 +32,62 @@ class recog
 public:	
 	ros::NodeHandle& nodeHandle_;
 
-  	ros::Subscriber PCsub_;
+  	// ros::Subscriber PCsub_;
 
-  	ros::Publisher shape_pub_;
+  	// ros::Publisher shape_pub_;
+
+  	// ros::Publisher pub_shape_probabilities;
+
+  	std::vector<ros::Publisher> pub_prob_vec;
+  	//std::vector<ros::Publisher> pub_result_vec;
+
+  	std::vector<ros::Subscriber> sub_cloud_vec;
 
 
-
-  	
-
-	int count;
-	int maxsample;
+	int maxcluster;
+	int maxsample; 
 	std::string modname;
 	std::string message;
+	std_msgs::Float32MultiArray shape_probabilities;
 
 	recog(ros::NodeHandle& nodeHandle): nodeHandle_(nodeHandle)
 	{
 		// if (!readParameters()) {
 	 //    ROS_ERROR("Could not read parameters.");
 	 //    ros::requestShutdown();
-	 //  }
-		maxsample=20;
-		modname="Cube";
-		message="";
+	 //  
 
-	  count=0;
-	  PCsub_=nodeHandle_.subscribe("/pcl_tut/cluster0",1,&recog::recogCB,this);
-	  shape_pub_ =
-    	nodeHandle_.advertise<std_msgs::String>("/Object_detection/shape", 1);
-	  ROS_INFO("Successfully launchednode.");
+	  maxcluster=3;
+	  for (int i =0;i<maxcluster;i++)
+	  {
+
+	  	std::string subName = "/pcl_tut/cluster" + boost::lexical_cast<std::string>(i);
+	  	std::string probName = "/Object_detection/shape_prob/cluster" + boost::lexical_cast<std::string>(i);
+	  	ros::Subscriber sub_t;
+
+	  	if (i==0) sub_t=nodeHandle_.subscribe(subName,1,&recog::recogCB0,this);
+	  	if (i==1) sub_t=nodeHandle_.subscribe(subName,1,&recog::recogCB1,this);
+	  	if (i==2) sub_t=nodeHandle_.subscribe(subName,1,&recog::recogCB2,this);
+
+	  	sub_cloud_vec.push_back(sub_t);
+
+	  	ros::Publisher pub = nodeHandle_.advertise<std_msgs::Float32MultiArray> (probName, 1);
+
+        pub_prob_vec.push_back(pub);
+	  }
+	  
+	  // shape_pub_ =
+   //  	nodeHandle_.advertise<std_msgs::String>("/Object_detection/shape", 1);
+
+   //  	pub_shape_probabilities = nodeHandle_.advertise<std_msgs::Float32MultiArray>("/object_classification/shape_probabilities", 1);
+	  ROS_INFO("Successfully launchednode different cb.");
 
 
 
 	}
-	// virtual ~recog()
-	// {
-	// }
+	virtual ~recog()
+	{
+	}
 
 	
 	// bool readParameters()
@@ -79,7 +101,7 @@ public:
 
 	// }
 
-	void recogCB(const sensor_msgs::PointCloud2ConstPtr& input)
+	void recogCB0(const sensor_msgs::PointCloud2ConstPtr& input)
 	{
 			//pcl::PCDWriter writer;
 			pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
@@ -108,19 +130,92 @@ public:
 			//pcl::PointCloud<pcl::VFHSignature308> vfhs;
 			  // Compute the features
 			vfh.compute (*vfhs);
-			count++;
-			ROS_INFO("vfhs loaded,  compare, no pointer");
+			//ROS_INFO("vfhs loaded,  compare, no pointer");
 
 			compare(*vfhs);
-			std_msgs::String msg;
-			msg.data=message;
-			shape_pub_.publish(msg);
-			//ROS_INFO("end of cb ");
-		
+			// std_msgs::String msg;
+			// msg.data=message;
+			// shape_pub_.publish(msg);
+			pub_prob_vec[0].publish(shape_probabilities);
+			ROS_INFO("end of cb0 ");
+	}
 
+	void recogCB1(const sensor_msgs::PointCloud2ConstPtr& input)
+	{
+			//pcl::PCDWriter writer;
+			pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+			//pcl::PointCloud<pcl::PointXYZ> cloud;
+			pcl::fromROSMsg (*input, *cloud);
 
+			//search fo normals
 
+			pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
+  			ne.setInputCloud (cloud);
+  			pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
+  			ne.setSearchMethod (tree);
 
+			pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal> ());
+			ne.setRadiusSearch (0.03);
+
+		  	// Compute the features
+		  	ne.compute (*normals);
+
+			pcl::VFHEstimation<pcl::PointXYZ, pcl::Normal, pcl::VFHSignature308> vfh;
+			vfh.setInputCloud (cloud);
+			vfh.setInputNormals (normals);
+			vfh.setSearchMethod (tree);
+			  // Output datasets
+			pcl::PointCloud<pcl::VFHSignature308>::Ptr vfhs (new pcl::PointCloud<pcl::VFHSignature308> ());
+			//pcl::PointCloud<pcl::VFHSignature308> vfhs;
+			  // Compute the features
+			vfh.compute (*vfhs);
+			//ROS_INFO("vfhs loaded,  compare, no pointer");
+
+			compare(*vfhs);
+			// std_msgs::String msg;
+			// msg.data=message;
+			// shape_pub_.publish(msg);
+			pub_prob_vec[1].publish(shape_probabilities);
+			ROS_INFO("end of cb1 ");
+	}
+
+	void recogCB2(const sensor_msgs::PointCloud2ConstPtr& input)
+	{
+			//pcl::PCDWriter writer;
+			pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+			//pcl::PointCloud<pcl::PointXYZ> cloud;
+			pcl::fromROSMsg (*input, *cloud);
+
+			//search fo normals
+
+			pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
+  			ne.setInputCloud (cloud);
+  			pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
+  			ne.setSearchMethod (tree);
+
+			pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal> ());
+			ne.setRadiusSearch (0.03);
+
+		  	// Compute the features
+		  	ne.compute (*normals);
+
+			pcl::VFHEstimation<pcl::PointXYZ, pcl::Normal, pcl::VFHSignature308> vfh;
+			vfh.setInputCloud (cloud);
+			vfh.setInputNormals (normals);
+			vfh.setSearchMethod (tree);
+			  // Output datasets
+			pcl::PointCloud<pcl::VFHSignature308>::Ptr vfhs (new pcl::PointCloud<pcl::VFHSignature308> ());
+			//pcl::PointCloud<pcl::VFHSignature308> vfhs;
+			  // Compute the features
+			vfh.compute (*vfhs);
+			//ROS_INFO("vfhs loaded,  compare, no pointer");
+
+			compare(*vfhs);
+			// std_msgs::String msg;
+			// msg.data=message;
+			// shape_pub_.publish(msg);
+			pub_prob_vec[2].publish(shape_probabilities);
+			ROS_INFO("end of cb2 ");
 	}
 
 	bool
@@ -153,6 +248,7 @@ public:
 	  // Treat the VFH signature as a single Point Cloud
 
 	  vfh.second.resize (308);
+
 
 	  sensor_msgs::PointCloud2 c2;
   	  pcl::toROSMsg(point, c2);
@@ -212,7 +308,8 @@ public:
 
 	void compare(const pcl::PointCloud<pcl::VFHSignature308> &point)
 	{
-		int k = 4;
+		int k =20;
+		int shapesize=7;
 
   		double thresh = 50;     // No threshold, disabled by default
   		std::string extension (".pcd");
@@ -222,9 +319,9 @@ public:
   		//ROS_INFO("NO load");
 		loadHist (point, histogram);
 
-		std::string kdtree_idx_file_name = "kdtree.idx";
-		std::string training_data_h5_file_name = "training_data.h5";
-		std::string training_data_list_file_name = "training_data.list";
+		std::string kdtree_idx_file_name = "/home/ras18/catkin_ws/src/ras_group8/ras_group8_camera_pcl/kdtree.idx";
+		std::string training_data_h5_file_name = "/home/ras18/catkin_ws/src/ras_group8/ras_group8_camera_pcl/training_data.h5";
+		std::string training_data_list_file_name = "/home/ras18/catkin_ws/src/ras_group8/ras_group8_camera_pcl/training_data.list";
 
 		std::vector<vfh_model> models;
 		  flann::Matrix<int> k_indices;
@@ -246,26 +343,51 @@ public:
 
 		  // Output the results on screen
 		  pcl::console::print_highlight ("The closest %d neighbors are:\n", k);
-		  int vote[2]={0,0};
-		  //cube, star
+		  double vote[7]={0,0,0,0,0,0,0};
+		  //cube, holcube,sphere,holtriangle,holcylinder,holcross,star
 		  for (int i = 0; i < k; ++i)
 		  {
 		  	pcl::console::print_info ("    %d - %s (%d) with a distance of: %f\n", 
 		        i, models.at (k_indices[0][i]).first.c_str (), k_indices[0][i], k_distances[0][i]);
 		        //ROS_INFO("in1");	  
-		  	if (k_distances[0][i]>150) continue;
+		  	//if (k_distances[0][i]>150) continue;
 		  	std::string name=models.at (k_indices[0][i]).first;
 			std::size_t found = name.find("Cube");
 			//ROS_INFO("in2");
-  			if (found!=std::string::npos) vote[0]++;
+  			if (found!=std::string::npos) vote[0]+=1/(k_distances[0][i]);
+
+
+  			found = name.find("Holcu");
+  			if (found!=std::string::npos) vote[1]+=1/(k_distances[0][i]);
+
+  			found = name.find("Sphere");
+  			if (found!=std::string::npos) vote[2]+=1/(k_distances[0][i]);
+
+  			found = name.find("Holtri");
+  			if (found!=std::string::npos) vote[3]+=1/(k_distances[0][i]);
+
+  			found = name.find("Holcy");
+  			if (found!=std::string::npos) vote[4]+=1/(k_distances[0][i]);
+
+  			found = name.find("Holcro");
+  			if (found!=std::string::npos) vote[5]+=1/(k_distances[0][i]);
+
   			found = name.find("Star");
-  			//ROS_INFO("in3");	
-  			if (found!=std::string::npos) vote[1]++;
+  			if (found!=std::string::npos) vote[6]+=1/(k_distances[0][i]);
   			//pcl::console::print_info ("end\n");
 		  }
+
+		  //normalize
+		  double dsum=0;
+		  for (int i=0;i<shapesize;i++) dsum+=vote[i];
+		  for (int i=0;i<shapesize;i++) vote[i]/=dsum;
+
+
+
+
 		  int order=-1;
-		  int max=0;
-		  for (int i=0;i<2;i++)
+		  double max=0.3;
+		  for (int i=0;i<shapesize;i++)
 		  {
 		  	if (vote[i]>max)
 		  	{
@@ -275,12 +397,23 @@ public:
 
 		  }
 		  if (order==-1) message="N/A";
-		  if (order==0) message="Cube";
-		  else if(order==1) message="Star";
+		  if (order==0) message="cube";
+		  else if(order==1) message="holcube";
+		  else if(order==2) message="sphere";
+		  else if(order==3) message="holtriangle";
+		  else if(order==4) message="holcylinder";
+		  else if(order==5) message="holcross";
+		  else if(order==6) message="star";
 		  // // delete[] k_indices.ptr();
 		  // // delete[] k_distances.ptr();    
 		  // // delete[] data.ptr();
 		  //ROS_INFO("end of compare");
+
+		  //std_msgs::Float32MultiArray shape_probabilities;
+		  shape_probabilities.data.clear();
+		  for (int itr1 = 0; itr1<shapesize; itr1 ++) shape_probabilities.data.push_back(vote[itr1]);
+
+      	//pub_shape_probabilities.publish(shape_probabilities);
 	}
 
 

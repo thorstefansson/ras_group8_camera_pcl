@@ -134,8 +134,6 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   //trying:
   sensor_msgs::PointCloud2 filtered_cloud;
 
-
-
   //pcl_conversions::toROSMsg(cloud_outliers, filtered_cloud);
   pcl::toROSMsg(cloud_outliers, filtered_cloud);
   pub_cloud.publish(filtered_cloud);

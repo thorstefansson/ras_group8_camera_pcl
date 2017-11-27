@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   geometry_msgs
+  ras_group8_brain
 )
 
 
@@ -23,6 +24,7 @@ find_package(PCL 1.3 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -95,6 +97,7 @@ find_package(PCL 1.3 REQUIRED)
 ##   * uncomment the "generate_dynamic_reconfigure_options" section below
 ##     and list every .cfg file to be processed
 
+
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
 # generate_dynamic_reconfigure_options(
 #   cfg/DynReconf1.cfg
@@ -121,8 +124,8 @@ if(FLANN_CFLAGS)
    add_definitions(${FLANN_CFLAGS})
  endif(FLANN_CFLAGS)
 
-#find_package(HDF5 REQUIRED)
-#include_directories(${HDF5_INCLUDE_DIR})
+find_package(HDF5 REQUIRED)
+include_directories(${HDF5_INCLUDE_DIR})
 
 
 catkin_package(
@@ -167,9 +170,12 @@ add_executable(example_voxelgrid src/example_voxelgrid.cpp)
 add_executable(example_planarsegmentation src/example_planarsegmentation.cpp)
 add_executable (segmentation src/segmentation.cpp)
 add_executable (outlier_removal src/outlier_removal.cpp)
-#add_executable(record src/record.cpp)
-#add_executable(recognition src/recognization.cpp)
+add_executable(record src/record.cpp)
+add_executable(recognition src/recognization.cpp)
 add_executable(color_clusters src/color_clusters.cpp)
+add_executable(location_and_color src/location_and_color.cpp)
+add_executable(passthrough_filter src/passthrough_filter.cpp)
+add_executable(remove_floor_and_walls src/remove_floor_and_walls.cpp)
 #add_executable (cluster_extraction src/cluster_extraction.cpp)
 
 ## Rename C++ executable without prefix
@@ -191,8 +197,12 @@ target_link_libraries(example_planarsegmentation ${catkin_LIBRARIES})
 target_link_libraries(color_clusters ${catkin_LIBRARIES})
 target_link_libraries (segmentation ${PCL_LIBRARIES})
 target_link_libraries (outlier_removal ${catkin_LIBRARIES})
-#target_link_libraries(record ${catkin_LIBRARIES})
-#target_link_libraries(recognition ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FLANN_LIBRARIES} ${HDF5_hdf5_LIBRARY} ${catkin_LIBRARIES})
+target_link_libraries(location_and_color ${catkin_LIBRARIES})
+target_link_libraries(passthrough_filter ${catkin_LIBRARIES})
+target_link_libraries(remove_floor_and_walls ${catkin_LIBRARIES})
+
+target_link_libraries(record ${catkin_LIBRARIES})
+target_link_libraries(recognition ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FLANN_LIBRARIES} ${HDF5_hdf5_LIBRARY} ${catkin_LIBRARIES})
 #target_link_libraries (cluster_extraction ${catkin_LIBRARIES})
 #target_link_libraries (cluster_extraction ${PCL_LIBRARIES})
 
