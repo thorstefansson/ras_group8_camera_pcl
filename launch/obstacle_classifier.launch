@@ -1,15 +1,18 @@
 <launch>  
   <include file="/home/ras18/catkin_ws/src/ras_realsense/realsense_camera/launch/sr300_nodelet_rgbd.launch"/>
 
-
-
 <!-- Start outlier removal node -->
+
 <node pkg="ras_group8_camera_pcl" type="outlier_removal" name="ras_group8_outlier_removal" output="screen">
     <remap from="input" to="/camera/depth_registered/points"/>
 <remap from="output" to="/outlier_removed_points"/>
   </node>
-
-
+<!--
+<node pkg="ras_group8_camera_pcl" type="outlier_removal" name="ras_group8_outlier_removal" output="screen">
+    <remap from="input" to="/camera/depth_registered/sw_registered/image_rect/compressed"/>
+<remap from="output" to="/outlier_removed_points"/>
+  </node>
+-->
 
 
 <!--Start voxel node -->
@@ -22,7 +25,7 @@
 
 
 <!--Start planar segmentation node -->
-<node pkg="ras_group8_camera_pcl" type="location_and_color" name="location_and_color" output="screen">
+<node pkg="ras_group8_camera_pcl" type="obstacle_classifier" name="ras_group8_obstacle_classifier" output="screen">
     
 <remap from="input" to="/voxel_points"/>
   </node>

@@ -167,7 +167,6 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 //  //pcl::fromROSMsg (*input, cloud);
 
 
-
   //TRY TO GET HSV VALUES:
   pcl::PointCloud<pcl::PointXYZRGB> RGBcloud;
   //pcl::fromROSMsg (*input, RGBcloud);
@@ -192,6 +191,11 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   //std::cout <<"HSV cloud size" << cloud.size() << std::endl;*/
 
 
+
+
+
+  // Instead of the following code segmenting out largest plane:
+  /*
   //FILTERING OUT LARGEST PLANE:
   pcl :: ModelCoefficients :: Ptr
   coefficients (new
@@ -215,8 +219,45 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   seg.setMaxIterations (100);
   seg.setDistanceThreshold (0.01);
   seg.setInputCloud (cloud.makeShared ());
-
   seg.segment (*inliers, *coefficients);
+  // Create the filtering object
+  //pcl::ExtractIndices<pcl::PointXYZ> extract;
+  //WITH RGB:
+//  pcl::ExtractIndices<pcl::PointXYZRGB> extract;
+  //HSV:
+  pcl::ExtractIndices<pcl::PointXYZHSV> extract;
+  //  Extract the inliers
+  extract .setInputCloud (cloud.makeShared());
+  extract . setIndices ( inliers );
+  extract .setNegative (false );
+  extract . filter (cloud_inliers);
+  //ROS_INFO("%i",cloud_inliers.height*cloud_inliers.width);
+  // Extract outliers
+  extract.setNegative (true);				// Extract the outliers
+  extract.filter (cloud_outliers);		// cloud_outliers contains everything but the plane !!!!!!!
+  //ROS_INFO("%i",cloud_outliers.height*cloud_outliers.width);
+  */
+
+  // Try to remove the floor given its coefficients:
+  //these are the coefficients of the floor: values: [-0.04023124650120735, -0.8639819622039795, -0.5019128918647766, 0.12330468744039536]
+
+  pcl::SampleConsensusModelPlane<pcl::PointXYZHSV>::Ptr floor_model;
+  pcl::IndicesPtr lower_cloud_floor_inliers(new std::vector<int>);
+
+  Eigen::VectorXf floor_coefficients(4);
+
+  pcl::PointCloud<pcl::PointXYZHSV>::Ptr lower_cloud = cloud.makeShared();
+
+  floor_model.reset(new pcl::SampleConsensusModelPlane<pcl::PointXYZHSV>(lower_cloud));
+
+  float floor_coefficients_array [4] = {-0.04023124650120735, -0.8639819622039795, -0.5019128918647766, 0.12330468744039536};
+
+  for (int i = 0; i<4 ; i++){
+      floor_coefficients[i] =floor_coefficients_array[i];
+  }
+
+  floor_model->selectWithinDistance(floor_coefficients, 0.01, *lower_cloud_floor_inliers);
+
 
   // Create the filtering object
   //pcl::ExtractIndices<pcl::PointXYZ> extract;
@@ -224,14 +265,12 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 //  pcl::ExtractIndices<pcl::PointXYZRGB> extract;
   //HSV:
   pcl::ExtractIndices<pcl::PointXYZHSV> extract;
-
   //  Extract the inliers
-  extract .setInputCloud (cloud.makeShared());
-  extract . setIndices ( inliers );
+  extract .setInputCloud (lower_cloud);
+  extract . setIndices ( lower_cloud_floor_inliers );
   extract .setNegative (false );
   extract . filter (cloud_inliers);
   //ROS_INFO("%i",cloud_inliers.height*cloud_inliers.width);
-
   // Extract outliers
   extract.setNegative (true);				// Extract the outliers
   extract.filter (cloud_outliers);		// cloud_outliers contains everything but the plane !!!!!!!
@@ -349,9 +388,14 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 }  //END LOOP
 
   cout << "FINAL" << endl;
+
+  //This only works when calculating largest plane:
+  /*
   // Publish the model coefficients
   pcl_msgs::ModelCoefficients ros_coefficients;
   pcl_conversions::fromPCL(*coefficients, ros_coefficients);
+  pub.publish (ros_coefficients);*/
+
 
   sensor_msgs::PointCloud2 filtered_cloud;
   //pcl_conversions::toROSMsg(cloud_outliers, filtered_cloud);
@@ -360,7 +404,7 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   pub_cloud.publish(filtered_cloud);
   //ROS_INFO("%i",filtered_cloud.width);
 
-  pub.publish (ros_coefficients);
+
 
 
   //for testing:

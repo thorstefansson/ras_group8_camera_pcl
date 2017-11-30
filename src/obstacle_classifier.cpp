@@ -129,6 +129,7 @@ void
 cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
 
+    cout << "beginning of callback" << endl;
 
     /*
   //NEW PROGRAM:
@@ -152,7 +153,7 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   pcl::PointCloud<pcl::PointXYZHSV> cloud_outliers;
   pcl::PointCloud<pcl::PointXYZHSV> cloud_inliers;
 
-  std_msgs::Float32MultiArray color_probabilities;
+  //std_msgs::Float32MultiArray color_probabilities;
 
 
 
@@ -171,12 +172,9 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   //std::cout <<"HSV cloud size" << cloud.size() << std::endl;*/
 
 
-  pcl :: ModelCoefficients :: Ptr
-  coefficients (new
-  pcl :: ModelCoefficients  ());
+  pcl :: ModelCoefficients :: Ptr coefficients (new pcl :: ModelCoefficients  ());
 
-  pcl :: PointIndices :: Ptr  inliers
-  (new pcl :: PointIndices  ());
+  pcl :: PointIndices :: Ptr  inliers  (new pcl :: PointIndices  ());
 
 
 
@@ -290,10 +288,10 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   //Battery typically larger than 120
   //often at least 250 when not very far away, up to around 5-600
   //if lying down, floor can be a smaller plane.
-  ec.setMinClusterSize (60);
+  ec.setMinClusterSize (120);
 
   //Maximum size for colored objects to pick up around 220 points.
-  ec.setMaxClusterSize (400);  //25000 original. can use 500 for objects..
+  ec.setMaxClusterSize (3000);  //25000 original. can use 500 for objects..
   ec.setSearchMethod (tree);
   ec.setInputCloud (downsampled_XYZ.makeShared());
 
@@ -308,21 +306,23 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   //Create a publisher for each cluster
   int maxcluster=3;
 
-  for (int i = 0; i < maxcluster; ++i)
+  for (int i = 0; i < cluster_indices.size(); ++i)
   {
-      std::string topicName = "/pcl_tut/cluster" + boost::lexical_cast<std::string>(i);
+      std::string topicName = "/pcl/cluster/obstacle" + boost::lexical_cast<std::string>(i);
 
 
       ros::Publisher pub = nh.advertise<sensor_msgs::PointCloud2> (topicName, 1);
 
       pub_vec.push_back(pub);
 
+      /*
       std::string topicName2 = "/Object_detection/color_prob/cluster" + boost::lexical_cast<std::string>(i);
-
 
       ros::Publisher pub2 = nh.advertise<std_msgs::Float32MultiArray> (topicName2, 1);
 
       prob_vec.push_back(pub2);
+
+      */
 
       //TRY TO PUBLISH ALL CENTER POINTS:
 
@@ -342,6 +342,7 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
 
 
+  /*
   //Get classification matrix:
   int** result_matrix = new int*[255];
   ifstream resultFile;
@@ -363,21 +364,21 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       //cout << endl;
   }
   resultFile.close();
+*/
 
 
+
+  float color_likelihood = 0;
   for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
   {
       //pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
       //RGB:
       //pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZRGB>);
       //HSV:
-    if(count>=3) break;
       pcl::PointCloud<pcl::PointXYZHSV>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZHSV>);
 
       for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); pit++)
           cloud_cluster->points.push_back (downsampled_XYZ.points[*pit]); //*
-
-
 
 
       cloud_cluster->width = cloud_cluster->points.size ();
@@ -386,7 +387,7 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       double x=0;
       double y=0;
       double z=0;
-      float color_votes[9] = {0.0};
+      //float color_votes[9] = {0.0};
       //pcl::PointXYZ point;
       //RGB:
       //pcl::PointXYZRGB point;
@@ -394,47 +395,69 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       pcl::PointXYZHSV point;
 
 
-      //in the dark already did: purple, red, orange,yellow, both blue, both green
-
       int size = cloud_cluster->points.size () ;
-      for (int i=0;i<cloud_cluster->points.size () ; i++)
-      {
-        point = cloud_cluster->at(i);
 
-        x +=point.x;
-        y += point.y;
-        z += point.z;
+      //if(size<400){
+          for (int i=0;i<cloud_cluster->points.size () ; i++)
+          {
+              point = cloud_cluster->at(i);
 
-        H = point.h;
-        S = point.s;
-        S = S*254;
-        V = point.v;
+              x +=point.x;
+              y += point.y;
+              z += point.z;
 
-        color_votes[result_matrix[(int)S][(int)H]]++;
+              H = point.h;
+              S = point.s;
+              S = S*254;
+              V = point.v;
 
-        //change this depending on color to remove outliers:
-        // 115 for dark green, 130 for light green, 180 for light blue,20 for orange, 38 for yellow, 230 purple, 350-10 for red
-        //if (count==0 && abs(115-H < 20)){
-        //if (count==0){
-        //write training data to files
-        //Hfile << ToString(H) << endl;
-        //Sfile << ToString(S) << endl;
-        //}
+              //make if statements to calculate how many points are likely to belong to a valuable object:
 
-        /*
+              if((H<57 && S>183) || (H> 90 && H<200 && S > 140) || (H> 212 && H<260 && H> 36 && H<127) || (H>355 && S>212)){
+                  color_likelihood++;
+              }
+
+              //color_votes[result_matrix[(int)S][(int)H]]++;
+
+              //change this depending on color to remove outliers:
+              // 115 for dark green, 130 for light green, 180 for light blue,20 for orange, 38 for yellow, 230 purple, 350-10 for red
+              //if (count==0 && abs(115-H < 20)){
+              //if (count==0){
+              //write training data to files
+              //Hfile << ToString(H) << endl;
+              //Sfile << ToString(S) << endl;
+              //}
+
+              /*
         x =point.x;.
         y = point.y;
         z = point.z;
 */
-        //std::cout <<"x = " << x <<"  " << "y = " << y <<"  "<<"z = " << z << std::endl;
-        //std::cout << "H= " << H << " S= " << S << endl;
-      }
+              //std::cout <<"x = " << x <<"  " << "y = " << y <<"  "<<"z = " << z << std::endl;
+              //std::cout << "H= " << H << " S= " << S << endl;
+          }
+      /*}
+      else{
+          for (int i=0;i<cloud_cluster->points.size () ; i++)
+          {
+              point = cloud_cluster->at(i);
+
+              x +=point.x;
+              y += point.y;
+              z += point.z;
+          }
+      }*/
 
 
       x = x/size;
       y= y/size;
       z=z/size;
-      for(int itr=0; itr<9;itr++) color_votes[itr] /= size;
+
+      color_likelihood /= size;
+
+      cout << "likelihood of obstacle cluster " << j << " being a valuable object: " << color_likelihood << endl;
+
+      //for(int itr=0; itr<9;itr++) color_votes[itr] /= size;
 
       //color_votes = color_votes/size;
 /*
@@ -446,7 +469,7 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       //std::cout <<"x = " << x <<"  " << "y = " << y <<"  "<<"z = " << z << std::endl;
       std::cout <<"size = " << size << std::endl;
 
-      color_probabilities.data.clear();
+      //color_probabilities.data.clear();
 
       //if (count==0){
       //std::cout<<"startpublished"<<std::endl;
@@ -460,17 +483,17 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       pub_vec_centers[j].publish(msg);
       //pub_center_point.publish(msg);
     //}
-      
+      //if(count>=3) break;
 
       // std::cout << "orange:" << color_votes[0] << " red:" << color_votes[1] << " yellow:" << color_votes[2]
       //              << " purple:" << color_votes[3] << " blue:" << color_votes[4] << " dark_green:" << color_votes[5]
       //                 <<" light green:" << color_votes[6] <<" battery:" << color_votes[7] << " trap:" << color_votes[8]
       //                   << endl;
       // std::cout<<"published"<<std::endl;
-      for (int itr1 = 0; itr1<9; itr1 ++) color_probabilities.data.push_back(color_votes[itr1]);
+      //for (int itr1 = 0; itr1<9; itr1 ++) color_probabilities.data.push_back(color_votes[itr1]);
 
-      prob_vec[count].publish(color_probabilities);
-      
+      //prob_vec[count].publish(color_probabilities);
+
       //int x=point.x;
       //int y = point.y;
       //int z= point.z;
@@ -487,6 +510,7 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       // Publish the data
       pub_vec[j].publish (output);
       //ROS_INFO("%i", *output.height);
+      cout << "published" << endl;
 
       ++j;
       count++;

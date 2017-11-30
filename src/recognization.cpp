@@ -39,6 +39,7 @@ public:
   	// ros::Publisher pub_shape_probabilities;
 
   	std::vector<ros::Publisher> pub_prob_vec;
+
   	//std::vector<ros::Publisher> pub_result_vec;
 
   	std::vector<ros::Subscriber> sub_cloud_vec;
@@ -80,7 +81,7 @@ public:
    //  	nodeHandle_.advertise<std_msgs::String>("/Object_detection/shape", 1);
 
    //  	pub_shape_probabilities = nodeHandle_.advertise<std_msgs::Float32MultiArray>("/object_classification/shape_probabilities", 1);
-	  ROS_INFO("Successfully launchednode different cb.");
+	  ROS_INFO("Successfully launchednode 1222.");
 
 
 
@@ -171,7 +172,7 @@ public:
 			vfh.compute (*vfhs);
 			//ROS_INFO("vfhs loaded,  compare, no pointer");
 
-			compare(*vfhs);
+			//compare(*vfhs);
 			// std_msgs::String msg;
 			// msg.data=message;
 			// shape_pub_.publish(msg);
@@ -210,7 +211,7 @@ public:
 			vfh.compute (*vfhs);
 			//ROS_INFO("vfhs loaded,  compare, no pointer");
 
-			compare(*vfhs);
+			//compare(*vfhs);
 			// std_msgs::String msg;
 			// msg.data=message;
 			// shape_pub_.publish(msg);
@@ -309,7 +310,7 @@ public:
 	void compare(const pcl::PointCloud<pcl::VFHSignature308> &point)
 	{
 		int k =20;
-		int shapesize=7;
+		int shapesize=8;
 
   		double thresh = 50;     // No threshold, disabled by default
   		std::string extension (".pcd");
@@ -335,15 +336,17 @@ public:
 		  
 
 		  // Check if the tree index has already been saved to disk
-		    //ROS_INFO("No flann");
+		    ROS_INFO("No flann");
 		 
-		    flann::Index<flann::ChiSquareDistance<float> > index (data, flann::SavedIndexParams ("kdtree.idx"));
+		    flann::Index<flann::ChiSquareDistance<float> > index (data, flann::SavedIndexParams ("/home/ras18/catkin_ws/src/ras_group8/ras_group8_camera_pcl/kdtree.idx"));
 		    index.buildIndex ();
 		    nearestKSearch (index, histogram, k, k_indices, k_distances);
 
+		    ROS_INFO("complete knn");
+
 		  // Output the results on screen
 		  pcl::console::print_highlight ("The closest %d neighbors are:\n", k);
-		  double vote[7]={0,0,0,0,0,0,0};
+		  double vote[8]={0,0,0,0,0,0,0,0};
 		  //cube, holcube,sphere,holtriangle,holcylinder,holcross,star
 		  for (int i = 0; i < k; ++i)
 		  {
@@ -353,7 +356,7 @@ public:
 		  	//if (k_distances[0][i]>150) continue;
 		  	std::string name=models.at (k_indices[0][i]).first;
 			std::size_t found = name.find("Cube");
-			//ROS_INFO("in2");
+			ROS_INFO("in2");
   			if (found!=std::string::npos) vote[0]+=1/(k_distances[0][i]);
 
 
@@ -374,6 +377,10 @@ public:
 
   			found = name.find("Star");
   			if (found!=std::string::npos) vote[6]+=1/(k_distances[0][i]);
+
+  			found = name.find("Trap");
+  			if (found!=std::string::npos) vote[7]+=1/(k_distances[0][i]);
+
   			//pcl::console::print_info ("end\n");
 		  }
 
@@ -404,6 +411,7 @@ public:
 		  else if(order==4) message="holcylinder";
 		  else if(order==5) message="holcross";
 		  else if(order==6) message="star";
+		  else if(order==7) message="trap";
 		  // // delete[] k_indices.ptr();
 		  // // delete[] k_distances.ptr();    
 		  // // delete[] data.ptr();
