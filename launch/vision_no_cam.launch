@@ -1,0 +1,10 @@
+<launch>  
+
+<node pkg="ras_group8_camera_pcl" type="assemble" name="ras_group8_vision_assemble" output="screen">
+    <remap from="/visinput" to="/camera/depth_registered/points"/>
+	<remap from="/visoutput" to="/Object_detection"/>
+  </node>
+
+
+
+</launch>

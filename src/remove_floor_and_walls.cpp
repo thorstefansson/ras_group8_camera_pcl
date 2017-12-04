@@ -65,6 +65,16 @@ ros::Publisher pub_center_point;
 ros::Publisher pub_test_cloud;
 
 
+// Initializations needed for removing walls from lower cloud:
+pcl::PointCloud<pcl::PointXYZHSV>::Ptr lower_cloud_no_floor;
+pcl::IndicesPtr lower_cloud_wall_inliers(new std::vector<int>);
+pcl::SampleConsensusModelPlane<pcl::PointXYZHSV>::Ptr model;
+//pcl::PointCloud<pcl::PointXYZHSV> cloud_no_wall_outliers;
+pcl::PointCloud<pcl::PointXYZHSV>::Ptr cloud_no_wall_outliers (new pcl::PointCloud<pcl::PointXYZHSV>);
+pcl::ExtractIndices<pcl::PointXYZHSV> extract2;
+pcl::PointCloud<pcl::PointXYZHSV> lower_cloud_walls;
+
+
 
 using namespace pcl;
 
@@ -128,6 +138,7 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
 
 
+    cout << "begin" << endl;
 
     //PASS THROUGH FILTER:
     // divides the point cloud into upper and lower cloud
@@ -284,21 +295,14 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   pcl::fromPCLPointCloud2(cloud_filtered_upper, RGB_upper_cloud);
 
   pcl::PointCloud<pcl::PointXYZHSV> upper_HSV_cloud;
-  pcl::PointCloud<pcl::PointXYZHSV> cloud_wall_inliers;
+  //pcl::PointCloud<pcl::PointXYZHSV> cloud_wall_inliers;
   pcl::PointCloud<pcl::PointXYZHSV>::Ptr upper_cloud_no_walls (new pcl::PointCloud<pcl::PointXYZHSV>);
-
 
   PointCloudXYZRGBtoXYZHSV(RGB_upper_cloud, upper_HSV_cloud); // RGB -> HSV
   pcl::PointCloud<pcl::PointXYZHSV>::Ptr upper_HSV_cloudPtr = upper_HSV_cloud.makeShared();
 
   // Initializations needed for removing walls from lower cloud:
-  pcl::PointCloud<pcl::PointXYZHSV>::Ptr lower_cloud_no_floor = cloud_outliers.makeShared();
-  pcl::IndicesPtr lower_cloud_wall_inliers(new std::vector<int>);
-  pcl::SampleConsensusModelPlane<pcl::PointXYZHSV>::Ptr model;
-  //pcl::PointCloud<pcl::PointXYZHSV> cloud_no_wall_outliers;
-  pcl::PointCloud<pcl::PointXYZHSV>::Ptr cloud_no_wall_outliers (new pcl::PointCloud<pcl::PointXYZHSV>);
-  pcl::ExtractIndices<pcl::PointXYZHSV> extract2;
-  pcl::PointCloud<pcl::PointXYZHSV> lower_cloud_walls;
+  lower_cloud_no_floor = cloud_outliers.makeShared();
 
   //FILTERING OUT LARGEST PLANE:
   pcl :: ModelCoefficients :: Ptr wall_coefficients (new pcl :: ModelCoefficients  ());
@@ -335,25 +339,31 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
         break;
       }
 
+  cout << "size of inliers: " << wall_inliers->indices.size () << endl;
+  cout << "size of remaining point cloud: " << upper_HSV_cloudPtr -> points.size() << endl;
   //for testing, see inliers of extracted plane, upper cloud:
 
-  pcl::ExtractIndices<pcl::PointXYZHSV> extract_plane_upper;
 
+  pcl::ExtractIndices<pcl::PointXYZHSV> extract_plane_upper;
   // Extract the inliers
   extract_plane_upper .setInputCloud (upper_HSV_cloudPtr);
   extract_plane_upper . setIndices ( wall_inliers );
-  extract_plane_upper .setNegative (true );
+  extract_plane_upper .setNegative (true );         // Extract the outliers
   extract_plane_upper . filter (*upper_cloud_no_walls);
-
-
+  /*
   extract_plane_upper .setNegative (false );
-  extract_plane_upper . filter (cloud_wall_inliers);
+  extract_plane_upper . filter (cloud_wall_inliers);*/
+  cout << "done extracting from upper cloud" << endl;
   //ROS_INFO("%i",cloud_inliers.height*cloud_inliers.width);
+  //instead of:
   upper_HSV_cloudPtr.swap(upper_cloud_no_walls);
+  //try:
+  //upper_HSV_cloudPtr=upper_cloud_no_walls;
+
 
 //REMOVE THE SAME PLANE FROM LOWER CLOUD!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  cout << "coefficients:" << *wall_coefficients <<endl;
+  //cout << "coefficients:" << *wall_coefficients <<endl;
 
   model.reset(new pcl::SampleConsensusModelPlane<pcl::PointXYZHSV>(lower_cloud_no_floor));
 
@@ -373,21 +383,31 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   extract2 . setIndices ( lower_cloud_wall_inliers);//inliers2 );
   //cout <<"inliers:" << lower_cloud_wall_inliers << endl;
   extract2.setNegative (false);				// Extract the inliers
-  extract2.filter (lower_cloud_walls);		// Walls belonging to lower cloud !!!!!!!
-  cout <<"inliers:" << lower_cloud_walls.width*lower_cloud_walls.height << endl;
+  /*extract2.filter (lower_cloud_walls);		// Walls belonging to lower cloud !!!!!!!
+  cout <<"inliers:" << lower_cloud_walls.width*lower_cloud_walls.height << endl;*/
   // Extract outliers
   extract2.setNegative (true);				// Extract the outliers
   extract2.filter (*cloud_no_wall_outliers);		// cloud_outliers contains everything but the plane !!!!!!!
   //cout <<"hi" << endl;
   cout <<"lower cloud without wall:" << cloud_no_wall_outliers->width * cloud_no_wall_outliers->height << endl;
 
+  //instead of:
   lower_cloud_no_floor.swap(cloud_no_wall_outliers);
+  //try:
+  //lower_cloud_no_floor=cloud_no_wall_outliers;
 
   iteration++;
 
+  //I get error:
+  /*
+    lower cloud without wall:334
+[pcl::ExtractIndices::applyFilter] The indices size exceeds the size of the input.
+coefficients:header:
+*/
+
 }  //END LOOP
 
-  cout << "FINAL" << endl;
+  cout << "iterations: " << iteration << endl;
 
   //This only works when calculating largest plane:
   /*
@@ -408,13 +428,13 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
 
   //for testing:
-  sensor_msgs::PointCloud2 test_upper_cloud;
+  //sensor_msgs::PointCloud2 test_upper_cloud;
   //pcl_conversions::toROSMsg(cloud_outliers, filtered_cloud);
-  pcl::toROSMsg(cloud_wall_inliers, test_upper_cloud);
+  /*pcl::toROSMsg(cloud_wall_inliers, test_upper_cloud);
   test_upper_cloud.header.frame_id = input ->header.frame_id;
   pub_test_cloud.publish(test_upper_cloud);
   //ROS_INFO("%i",filtered_cloud.width);
-
+*/
 
 }
 

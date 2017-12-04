@@ -180,6 +180,7 @@ add_executable(obstacle_classifier src/obstacle_classifier.cpp)
 add_executable(clustering_and_color src/clustering_and_color.cpp)
 
 add_executable(combine src/combine.cpp)
+add_executable(assemble src/vision_assemble.cpp)
 #add_executable (cluster_extraction src/cluster_extraction.cpp)
 
 ## Rename C++ executable without prefix
@@ -208,6 +209,8 @@ target_link_libraries(clustering_and_color ${catkin_LIBRARIES})
 target_link_libraries(obstacle_classifier ${catkin_LIBRARIES})
 target_link_libraries(record ${catkin_LIBRARIES})
 target_link_libraries(recognition ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FLANN_LIBRARIES} ${HDF5_hdf5_LIBRARY} ${catkin_LIBRARIES})
+
+target_link_libraries(assemble ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FLANN_LIBRARIES} ${HDF5_hdf5_LIBRARY} ${catkin_LIBRARIES})
 
 target_link_libraries(combine ${catkin_LIBRARIES})
 
