@@ -2,6 +2,11 @@
   <include file="/home/ras18/catkin_ws/src/ras_realsense/realsense_camera/launch/sr300_nodelet_rgbd.launch"/>
 
 
+  <!-- Launch  blob Node -->
+  <node pkg="ras_group8_camera1" type="blob_detector_node" name="blob_detector_node" output="screen">
+  </node>
+
+
 <node pkg="ras_group8_camera_pcl" type="assemble_no_color" name="ras_group8_vision_assemble_no_color" output="screen">
     <remap from="/visinput" to="/camera/depth/points"/>
 	<remap from="/visoutput" to="/Object_detection"/>

@@ -185,7 +185,7 @@ public:
 
 
             vector<float> new_color2;
-            for (int j=0;j<8;j++) new_color2.push_back(0.0);
+            for (int j=0;j<9;j++) new_color2.push_back(0.0);
             color_probs2.push_back(new_color2);
 	  	}
         memory.number[0]=0;
@@ -452,8 +452,11 @@ public:
 		  ec.setMinClusterSize (60);
 
 		  //Maximum size for colored objects to pick up around 220 points.
-		  ec.setMaxClusterSize (400);  //25000 original. can use 500 for objects..
-		  ec.setSearchMethod (tree);
+          //ec.setMaxClusterSize (400);  //25000 original. can use 500 for objects..
+
+          ec.setMaxClusterSize (1500);
+
+          ec.setSearchMethod (tree);
 		  ec.setInputCloud (cloud_outliers.makeShared());
 
 		  //ec.setInputCloud (cloud_outliers);
@@ -500,11 +503,13 @@ public:
 	      int green_hue_limit = 210;
 	      int number_of_color_votes = 0;
 
+          int number_of_trap_votes = 0;
+
 
 	      //in the dark already did: purple, red, orange,yellow, both blue, both green
 
 	      int size = cloud_cluster->points.size () ;
-	      for (int i=0;i<cloud_cluster->points.size () ; i++)
+          for (int i=0;i<size ; i++)
 	      {
 	        point = cloud_cluster->at(i);
 
@@ -517,11 +522,20 @@ public:
 	        S = S*254;
 	        V = point.v;
 			
+            if(size<350){
 			//For removing H and S values with high ambiguity:
 	        if(S>orange_sat_limit || (S>green_sat_limit && H>orange_hue_limit) || H>green_hue_limit){
 	        	number_of_color_votes++;
 	        	color_votes[result_matrix[(int)S][(int)H]]++;
 	        }
+            else if (H>orange_hue_limit && H< green_hue_limit && S<green_sat_limit/2) {
+                number_of_trap_votes++;
+            }
+            }
+            else if(H>orange_hue_limit && H< green_hue_limit && S<green_sat_limit/1.5){
+                number_of_trap_votes++;
+            }
+
 	      }
 
 
@@ -563,7 +577,7 @@ public:
 			}
 \
             //new
-            for (int j=0;j<7;j++)
+            for (int j=0;j<8;j++)
             {
                 (color_probs2[order])[j]=color_votes[j];
             }
@@ -573,9 +587,12 @@ public:
             if((float)number_of_color_votes/size < 0.2){
 				//label the cluster as obstacle:
                 cout << "number of color votes: " << number_of_color_votes << endl;
+                cout << "number of trap votes: " << number_of_trap_votes << endl;
                 cout << "size: " << size << endl;
 				(color_probs[order])[6] = 1;
-                (color_probs2[order])[7] = 1;
+
+                if(number_of_trap_votes/size > 0.4) (color_probs2[order])[8] = 1;
+                else (color_probs2[order])[7] = 1;
 			}
 
 	 }
@@ -877,10 +894,12 @@ public:
 14    Orange cross
 15    Patric (the orange star)
 
-16 obstacle..*/
+16 obstacle..
+17 trap
+*/
         //order of colors is
         /*
-         *  "orange:" 0  red: "1" yellow:"  2<< " purple:" 3<< " blue:"  <<   "4 dark_green:"   5 < light green:"6 << obstacle: 7
+         *  "orange:" 0  red: "1" yellow:"  2<< " purple:" 3<< " blue:"  <<   "4 dark_green:"   5 < light green:"6 <<  obstacle: 7 << trap 8<<
           */
         //order of shapes is:
         /*
@@ -900,9 +919,9 @@ public:
         }
         cout<<endl;
 */
-        string object [16]= {"Red Cube", "Red Hollow Cube", "Red Ball", "Red Hollow Cylinder", "Green Cube", "Green Hollow Cube",
+        string object [18]= {"Red Cube", "Red Hollow Cube", "Red Ball", "Red Hollow Cylinder", "Green Cube", "Green Hollow Cube",
                              "Green Hollow Cylinder", "Yellow Cube", "Yellow Ball", "Blue Cube", "Blue Hollow Triangle",
-                             "Purple Cross", "Purple Star", "Orange Cross", "Patric"};
+                             "Purple Cross", "Purple Star", "Orange Cross", "Patric","obstacle", "trap"};
         //indexes:
         int red_indices[4] = {0,1,2,4};
         //int dark_green_indices only 0
@@ -966,8 +985,12 @@ public:
             break;
         }
         case 7: {
-            cout << "case 7 "<< endl;
+            //cout << "case 7 "<< endl;
             object_number = 16;
+            break;
+        }
+        case 8: {
+            object_number = 17;
             break;
         }
         }

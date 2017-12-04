@@ -52,6 +52,8 @@
 #include <fstream>
 #include <string>
 
+#include <vector>
+
 //for publishing arrays:
 #include "std_msgs/MultiArrayLayout.h"
 #include "std_msgs/MultiArrayDimension.h"
@@ -108,6 +110,9 @@ public:
     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> visioncloud_vec;
 
 	int match[16][2]; 
+
+    //new
+    //void color_cb(const std_msgs::Float32MultiArray::ConstPtr& color_array);
 
 
     //float color_Arr[9];
@@ -211,11 +216,11 @@ public:
 
 
 
-		sub = nodeHandle_.subscribe<sensor_msgs::PointCloud2> ("/visinput", 1, &vision::sensor_cb,this);
+        sub = nodeHandle_.subscribe<sensor_msgs::PointCloud2> ("/visinput", 1, &vision::sensor_cb,this);
 
 
         //for subscribing to one color
-        //sub_color = nodeHandle_.subscribe<sensor_msgs::PointCloud2> ("/blob/color_prob/cluster", 1, &vision::color_cb,this);
+        sub_color = nodeHandle_.subscribe("/blob/color_prob/cluster0", 1, &vision::color_cb,this);
 
 		pub = nodeHandle_.advertise<ras_group8_brain::Vision> ("/visoutput", 1);
 
@@ -280,7 +285,10 @@ public:
             //compute(i);
 			ROS_INFO("done compute");
             //alternative by thor:
+
+            if(color_Arr.size()>2){
             compute2(i);
+            }
 		}
 
         //compute2(0);
@@ -294,22 +302,24 @@ public:
 
 	}
 
-    /*
+
     void color_cb (const std_msgs::Float32MultiArray::ConstPtr& color_array)
     {
 
 
+        color_Arr.clear();
         int i = 0;
         // print all the remaining numbers
-        for(std::vector<int>::const_iterator it = color_array->data.begin(); it != color_array->data.end(); ++it)
+        for(std::vector<float>::const_iterator it = color_array->data.begin(); it != color_array->data.end(); ++it)
         {
             //color_Arr[i] = *it;
             color_Arr.push_back(*it);
             i++;
         }
 
+        cout << "color arr at 0" << color_Arr.at(0) << endl;
         return;
-    }*/
+    }
 
 
 	sensor_msgs::PointCloud2 preprocess(const pcl::PCLPointCloud2* cloud)
@@ -581,14 +591,14 @@ public:
         pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
 		ne.setSearchMethod (tree);
 
-        ROS_INFO("here");
+        //ROS_INFO("here");
 		pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal> ());
 		ne.setRadiusSearch (0.03);
 
 	  	// Compute the features
 	  	ne.compute (*normals);
 
-        ROS_INFO("here1");
+        //ROS_INFO("here1");
         pcl::VFHEstimation<pcl::PointXYZ, pcl::Normal, pcl::VFHSignature308> vfh;
 		vfh.setInputCloud (cloud_cluster);
 		vfh.setInputNormals (normals);
@@ -596,16 +606,16 @@ public:
 		  // Output datasets
 		pcl::PointCloud<pcl::VFHSignature308>::Ptr vfhs (new pcl::PointCloud<pcl::VFHSignature308> ());
 
-        ROS_INFO("here 1.5");
+        //ROS_INFO("here 1.5");
 		//pcl::PointCloud<pcl::VFHSignature308> vfhs;
 		  // Compute the features
 		vfh.compute (*vfhs);
 		//ROS_INFO("vfhs loaded,  compare, no pointer");
 
-        ROS_INFO("here 1.7");
+        //ROS_INFO("here 1.7");
         compare(*vfhs,order);
 
-        ROS_INFO("here2");
+        //ROS_INFO("here2");
 
 	}
 
@@ -857,6 +867,9 @@ public:
         //ROS_INFO("compute");
         vector<float> ps=shape_probs[order];
         vector<float> pc= color_Arr;//color_probs2[order];
+
+
+        cout << "pc at 0 " << pc.at(0) << endl;
         //Available objects are:
         /*
 1    Red Cube
