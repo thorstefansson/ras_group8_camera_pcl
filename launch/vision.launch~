@@ -1,8 +1,6 @@
 <launch>  
   <include file="/home/ras18/catkin_ws/src/ras_realsense/realsense_camera/launch/sr300_nodelet_rgbd.launch"/>
 
-<param name = "/camera/points_xyzrgb_sw_registered/queue_size" value = "100000"/>
-
 
 <node pkg="ras_group8_camera_pcl" type="assemble" name="ras_group8_vision_assemble" output="screen">
     <remap from="/visinput" to="/camera/depth_registered/points"/>

@@ -68,55 +68,6 @@ typedef pcl::VFHSignature308 PointT;
 
 
 
-void
-  PointXYZRGBtoXYZHSV (const PointXYZRGB& in,
-                       PointXYZHSV&       out)
-  {
-    const unsigned char max = std::max (in.r, std::max (in.g, in.b));
-    const unsigned char min = std::min (in.r, std::min (in.g, in.b));
-
-    out.x = in.x; out.y = in.y; out.z = in.z;
-    out.v = static_cast <float> (max) / 255.f;
-
-    if (max == 0) // division by zero
-    {
-      out.s = 0.f;
-      out.h = 0.f; // h = -1.f;
-      return;
-    }
-
-    const float diff = static_cast <float> (max - min);
-    out.s = diff / static_cast <float> (max);
-
-    if (min == max) // diff == 0 -> division by zero
-    {
-      out.h = 0;
-      return;
-    }
-
-    if      (max == in.r) out.h = 60.f * (      static_cast <float> (in.g - in.b) / diff);
-    else if (max == in.g) out.h = 60.f * (2.f + static_cast <float> (in.b - in.r) / diff);
-    else                  out.h = 60.f * (4.f + static_cast <float> (in.r - in.g) / diff); // max == b
-
-    if (out.h < 0.f) out.h += 360.f;
-}
-
-
-void
- PointCloudXYZRGBtoXYZHSV (const PointCloud<PointXYZRGB>& in,
-                           PointCloud<PointXYZHSV>&       out)
- {
-   out.width   = in.width;
-   out.height  = in.height;
-   for (size_t i = 0; i < in.points.size (); i++)
-   {
-     PointXYZHSV p;
-     PointXYZRGBtoXYZHSV (in.points[i], p);
-     out.points.push_back (p);
-   }
-}
-
-
 template <typename T>
 string ToString(T val)
 {
@@ -135,25 +86,32 @@ public:
     //new:
     //ros::Publisher pub_color_probs;
     //ros::Publisher pub_shape_probs;
-    std::vector<ros::Publisher> pub_color_probs, pub_shape_probs;
+    std::vector<ros::Publisher>  pub_shape_probs;
+    //std::vector<ros::Subscriber> sub_color_probs;
     //std::vector<ros::Publisher> pub_shape_probs;
 
 	ros::Subscriber sub;
+    //for subscribing to one color:
+    ros::Subscriber sub_color;
+
 	int** result_matrix;
 	int maxcluster;
 
 	std::vector< vector<float> > shape_probs;
-	std::vector< vector<float> > color_probs;
+    //std::vector< vector<float> > color_probs;
 	ras_group8_brain::Vision memory;
 
     //new
-    std::vector< vector<float> > color_probs2;
-    std_msgs::Float32MultiArray color_probabilities, shape_probabilities;
+    //std::vector< vector<float> > color_probs2;
+    std_msgs::Float32MultiArray  shape_probabilities; //color_probabilities,
 
-	std::vector<pcl::PointCloud<pcl::PointXYZHSV>::Ptr> visioncloud_vec;
+    std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> visioncloud_vec;
 
 	int match[16][2]; 
 
+
+    //float color_Arr[9];
+    std::vector<float> color_Arr;
 
 	std::vector<vfh_model> models;
 	flann::Matrix<int> k_indices;
@@ -164,7 +122,7 @@ public:
 	{
 
 		//ROS_INFO("start launch node 0002");
-		maxcluster=1;
+        maxcluster=3;
 		initmatrix();
 
 		
@@ -178,6 +136,7 @@ public:
 		  	shape_probs.push_back(new_shape);
 
 
+            /*
 		  	vector<float> new_color;
 		  	for (int j=0;j<7;j++) new_color.push_back(0.0);
 		  	color_probs.push_back(new_color);
@@ -187,6 +146,7 @@ public:
             vector<float> new_color2;
             for (int j=0;j<8;j++) new_color2.push_back(0.0);
             color_probs2.push_back(new_color2);
+            */
 	  	}
         memory.number[0]=0;
 	  	memory.number[1]=0;
@@ -197,19 +157,25 @@ public:
 
          for (int i = 0; i < maxcluster; ++i)
          {
+             /*
              std::string topicName2 = "/color_prob/cluster" + boost::lexical_cast<std::string>(i);
              ros::Publisher pub2 = nodeHandle_.advertise<std_msgs::Float32MultiArray> (topicName2, 1);
              pub_color_probs.push_back(pub2);
-
+*/
              std::string topicName3 = "/shape_prob/cluster" + boost::lexical_cast<std::string>(i);
              ros::Publisher pub3 = nodeHandle_.advertise<std_msgs::Float32MultiArray> (topicName3, 1);
              pub_shape_probs.push_back(pub3);
+
+             //std::string topicName2 = "/blob/color_prob/cluster" + boost::lexical_cast<std::string>(i);
+             //ros::Subscriber sub2 = nodeHandle_.subscribe<std_msgs::Float32MultiArray> (topicName2, 1, &vision::color_cb,this);
+             //sub_color_probs.push_back(pub2);
  }
 
 		//initial record cloud
 
 
 	  	//ROS_INFO("start color init");
+        /*
 		///inital color document
 		  result_matrix = new int*[255];
 		  ifstream resultFile;
@@ -230,7 +196,7 @@ public:
 		  	}
 		  	resultFile.close();
 		 //ROS_INFO("start shape init");
-
+*/
 		  //init shape document
 		std::string kdtree_idx_file_name = "/home/ras18/catkin_ws/src/ras_group8/ras_group8_camera_pcl/kdtree.idx";
 		std::string training_data_h5_file_name = "/home/ras18/catkin_ws/src/ras_group8/ras_group8_camera_pcl/training_data.h5";
@@ -244,7 +210,12 @@ public:
 
 
 
+
 		sub = nodeHandle_.subscribe<sensor_msgs::PointCloud2> ("/visinput", 1, &vision::sensor_cb,this);
+
+
+        //for subscribing to one color
+        //sub_color = nodeHandle_.subscribe<sensor_msgs::PointCloud2> ("/blob/color_prob/cluster", 1, &vision::color_cb,this);
 
 		pub = nodeHandle_.advertise<ras_group8_brain::Vision> ("/visoutput", 1);
 
@@ -265,7 +236,7 @@ public:
 		pcl_conversions::toPCL(*cloud_msg, *cloud);
 		//ROS_INFO("to process");
 		sensor_msgs::PointCloud2  voxcloud=preprocess(cloud);
-		//ROS_INFO("to seg");
+        //ROS_INFO("to seg");
 		int num_clu=seg(voxcloud);
 		//ROS_INFO("to recog");
         //std::cout<<"limit is "<<num_clu<<std::endl;
@@ -296,8 +267,8 @@ public:
             memory.position[i]=msg;
             ROS_INFO("go compute");
 */
-			ROS_INFO("go color");
-			color_recog(i);
+            //ROS_INFO("go color");
+            color_recog(i);
 			ROS_INFO("go shape");
 			shape_recog(i);
 			
@@ -306,12 +277,13 @@ public:
 
 
 			ROS_INFO("go compute");
-			compute(i);
+            //compute(i);
 			ROS_INFO("done compute");
             //alternative by thor:
             compute2(i);
 		}
 
+        //compute2(0);
 
 
 
@@ -321,6 +293,23 @@ public:
 		//OS_INFO("done publish");
 
 	}
+
+    /*
+    void color_cb (const std_msgs::Float32MultiArray::ConstPtr& color_array)
+    {
+
+
+        int i = 0;
+        // print all the remaining numbers
+        for(std::vector<int>::const_iterator it = color_array->data.begin(); it != color_array->data.end(); ++it)
+        {
+            //color_Arr[i] = *it;
+            color_Arr.push_back(*it);
+            i++;
+        }
+
+        return;
+    }*/
 
 
 	sensor_msgs::PointCloud2 preprocess(const pcl::PCLPointCloud2* cloud)
@@ -349,15 +338,16 @@ public:
 
   	int seg(const sensor_msgs::PointCloud2& input)
   	{
-  		pcl::PointCloud<pcl::PointXYZRGB> RGBcloud;
-  		pcl::fromROSMsg (input, RGBcloud);
+        //pcl::PointCloud<pcl::PointXYZRGB> RGBcloud;
+        //pcl::fromROSMsg (input, RGBcloud);
 
+        // Convert the sensor_msgs/PointCloud2 data to pcl/PointCloud
+        pcl::PointCloud<pcl::PointXYZ> cloud;
+        pcl::PointCloud<pcl::PointXYZ> cloud_outliers;
+        pcl::PointCloud<pcl::PointXYZ> cloud_inliers;
 
-  		pcl::PointCloud<pcl::PointXYZHSV> cloud;
-		pcl::PointCloud<pcl::PointXYZHSV> cloud_outliers;
-		pcl::PointCloud<pcl::PointXYZHSV> cloud_inliers;
-
-		PointCloudXYZRGBtoXYZHSV(RGBcloud, cloud); // RGB -> HSV
+        pcl::fromROSMsg (input, cloud);
+        //PointCloudXYZRGBtoXYZHSV(RGBcloud, cloud); // RGB -> HSV
 
 
 		// Instead of filtering out largest plane:
@@ -396,11 +386,11 @@ public:
 		// Try to remove the floor given its coefficients:
   		//these are the coefficients of the floor: values: [-0.04023124650120735, -0.8639819622039795, -0.5019128918647766, 0.12330468744039536]
 
-		pcl::SampleConsensusModelPlane<pcl::PointXYZHSV>::Ptr floor_model;
+        pcl::SampleConsensusModelPlane<pcl::PointXYZ>::Ptr floor_model;
 		pcl::IndicesPtr cloud_floor_inliers(new std::vector<int>);
 		Eigen::VectorXf floor_coefficients(4);
-		pcl::PointCloud<pcl::PointXYZHSV>::Ptr HSVcloudPtr = cloud.makeShared();
-		floor_model.reset(new pcl::SampleConsensusModelPlane<pcl::PointXYZHSV>(HSVcloudPtr));
+        pcl::PointCloud<pcl::PointXYZ>::Ptr XYZcloudPtr = cloud.makeShared();
+        floor_model.reset(new pcl::SampleConsensusModelPlane<pcl::PointXYZ>(XYZcloudPtr));
 		//this is only needed in initialization:
 		float floor_coefficients_array [4] = {-0.04023124650120735, -0.8639819622039795, -0.5019128918647766, 0.12330468744039536};
 		for (int i = 0; i<4 ; i++){
@@ -408,16 +398,14 @@ public:
 		}
 
 		floor_model->selectWithinDistance(floor_coefficients, 0.01, *cloud_floor_inliers);
-
-        //cout << "floor inlier size" << cloud_floor_inliers.size() << endl;
   		// Create the filtering object
   		//pcl::ExtractIndices<pcl::PointXYZ> extract;
   		//WITH RGB:
 		//  pcl::ExtractIndices<pcl::PointXYZRGB> extract;
   		//HSV:
-		pcl::ExtractIndices<pcl::PointXYZHSV> extract;
+        pcl::ExtractIndices<pcl::PointXYZ> extract;
   		//  Extract the inliers
-		extract .setInputCloud (HSVcloudPtr);
+        extract .setInputCloud (XYZcloudPtr);
 		extract . setIndices ( cloud_floor_inliers );
   		// Extract outliers
   		extract.setNegative (true);				// Extract the outliers
@@ -430,18 +418,18 @@ public:
 
 
   		//   cloud_outliers = cloud_outliers;
-  		  pcl::search::KdTree<pcl::PointXYZHSV>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZHSV>);
+          pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
 
 		  tree->setInputCloud (cloud_outliers.makeShared());
 		  //tree->setInputCloud (cloud_outliers);
 
 		  std::vector<pcl::PointIndices> cluster_indices;
 
-		  //pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+          pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
 		//RGB:
 		  //pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
 		//HSV:
-		  pcl::EuclideanClusterExtraction<pcl::PointXYZHSV> ec;
+          //pcl::EuclideanClusterExtraction<pcl::PointXYZHSV> ec;
 
 		  //For trap use a higher tolerance..
 		  ec.setClusterTolerance (0.02); // 2cm
@@ -465,7 +453,7 @@ public:
 
 		  for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
 		  {
-		      pcl::PointCloud<pcl::PointXYZHSV>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZHSV>);
+              pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
 
 		      for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); pit++)
 		          cloud_cluster->points.push_back (cloud_outliers.points[*pit]); //*
@@ -482,24 +470,27 @@ public:
 
   	void color_recog(int order)
   	{
-  		pcl::PointCloud<pcl::PointXYZHSV>::Ptr cloud_cluster (visioncloud_vec[order]);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (visioncloud_vec[order]);
 
-		  double H;
+          /*double H;
 		  double S;
 		  double V;
-		  double x=0;
+          */
+          double x=0;
 	      double y=0;
 	      double z=0;
-	      float color_votes[9]={0.0};
-	      pcl::PointXYZHSV point;
+          //float color_votes[9]={0.0};
+          pcl::PointXYZ point;
 
+
+          /*
 	      int orange_sat_limit = 0.7*255;
 	      int orange_hue_limit = 90;
 
 	      int green_sat_limit = 0.5*255;
 	      int green_hue_limit = 210;
 	      int number_of_color_votes = 0;
-
+*/
 
 	      //in the dark already did: purple, red, orange,yellow, both blue, both green
 
@@ -512,6 +503,7 @@ public:
 	        y += point.y;
 	        z += point.z;
 
+            /*
 	        H = point.h;
 	        S = point.s;
 	        S = S*254;
@@ -522,13 +514,13 @@ public:
 	        	number_of_color_votes++;
 	        	color_votes[result_matrix[(int)S][(int)H]]++;
 	        }
+            */
 	      }
-
 
 	      x = x/size;
 	      y= y/size;
 	      z=z/size;
-	      for(int itr=0; itr<9;itr++) color_votes[itr] /= size;
+          //for(int itr=0; itr<9;itr++) color_votes[itr] /= size;
 
 	      geometry_msgs::PointStamped msg;
 
@@ -548,11 +540,11 @@ public:
           //                   << endl;
 
 	      //vector<float> p=(color_probs[order]);
-          color_probabilities.data.clear();
+          //color_probabilities.data.clear();
 
-          for (int itr1 = 0; itr1<9; itr1 ++) color_probabilities.data.push_back(color_votes[itr1]);
-          pub_color_probs[order].publish(color_probabilities);
-
+          //for (int itr1 = 0; itr1<9; itr1 ++) color_probabilities.data.push_back(color_votes[itr1]);
+          //pub_color_probs[order].publish(color_probabilities);
+/*
 			for (int j=0;j<9;j++)
 			{
 				//std::cout<<i<<std::endl;
@@ -577,34 +569,43 @@ public:
 				(color_probs[order])[6] = 1;
                 (color_probs2[order])[7] = 1;
 			}
+            */
 
 	 }
 	void shape_recog(int order)
 	{
-		pcl::PointCloud<pcl::PointXYZHSV>::Ptr cloud_cluster (visioncloud_vec[order]);
-		pcl::NormalEstimation<pcl::PointXYZHSV, pcl::Normal> ne;
+        cout <<  "inside shape_recog" << endl;
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (visioncloud_vec[order]);
+        pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
 		ne.setInputCloud (cloud_cluster);
-		pcl::search::KdTree<pcl::PointXYZHSV>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZHSV> ());
+        pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
 		ne.setSearchMethod (tree);
 
+        ROS_INFO("here");
 		pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal> ());
 		ne.setRadiusSearch (0.03);
 
 	  	// Compute the features
 	  	ne.compute (*normals);
 
-		pcl::VFHEstimation<pcl::PointXYZHSV, pcl::Normal, pcl::VFHSignature308> vfh;
+        ROS_INFO("here1");
+        pcl::VFHEstimation<pcl::PointXYZ, pcl::Normal, pcl::VFHSignature308> vfh;
 		vfh.setInputCloud (cloud_cluster);
 		vfh.setInputNormals (normals);
 		vfh.setSearchMethod (tree);
 		  // Output datasets
 		pcl::PointCloud<pcl::VFHSignature308>::Ptr vfhs (new pcl::PointCloud<pcl::VFHSignature308> ());
+
+        ROS_INFO("here 1.5");
 		//pcl::PointCloud<pcl::VFHSignature308> vfhs;
 		  // Compute the features
 		vfh.compute (*vfhs);
 		//ROS_INFO("vfhs loaded,  compare, no pointer");
 
-		compare(*vfhs,order);
+        ROS_INFO("here 1.7");
+        compare(*vfhs,order);
+
+        ROS_INFO("here2");
 
 	}
 
@@ -805,6 +806,8 @@ public:
 		
 	}
 
+
+    /*
 	void compute(int order)
 	{
 
@@ -845,7 +848,7 @@ public:
 
 
 	}
-
+*/
 
     void compute2(int order)
     {
@@ -853,7 +856,7 @@ public:
 
         //ROS_INFO("compute");
         vector<float> ps=shape_probs[order];
-        vector<float> pc=color_probs2[order];
+        vector<float> pc= color_Arr;//color_probs2[order];
         //Available objects are:
         /*
 1    Red Cube
@@ -913,7 +916,7 @@ public:
         int purple_indices = {5, 6};
         int orange_indices = {5, 6};
 */
-        float current_max;
+       float current_max;
         int current_max_index;
         int object_number;
 
@@ -979,10 +982,11 @@ public:
 
     }
 
+
 	void showvect(int order)
 	{
 		vector<float> ps=shape_probs[order];
-		vector<float> pc=color_probs[order];
+        //vector<float> pc=color_probs[order];
 
         /*
 		cout<<"color vector is ";

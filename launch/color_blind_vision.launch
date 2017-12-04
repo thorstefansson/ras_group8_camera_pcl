@@ -1,0 +1,12 @@
+<launch>  
+  <include file="/home/ras18/catkin_ws/src/ras_realsense/realsense_camera/launch/sr300_nodelet_rgbd.launch"/>
+
+
+<node pkg="ras_group8_camera_pcl" type="assemble_no_color" name="ras_group8_vision_assemble_no_color" output="screen">
+    <remap from="/visinput" to="/camera/depth/points"/>
+	<remap from="/visoutput" to="/Object_detection"/>
+  </node>
+
+
+
+</launch>
