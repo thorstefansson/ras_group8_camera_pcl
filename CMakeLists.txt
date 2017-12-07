@@ -183,6 +183,7 @@ add_executable(combine src/combine.cpp)
 add_executable(assemble src/vision_assemble.cpp)
 add_executable(assemble_no_color src/vision_assemble_no_color.cpp)
 add_executable(vision_no_walls src/vision_no_walls.cpp)
+add_executable(vision_no_walls_barcode src/vision_no_walls_with_barcode.cpp)
 #add_executable (cluster_extraction src/cluster_extraction.cpp)
 
 ## Rename C++ executable without prefix
@@ -219,17 +220,10 @@ target_link_libraries(assemble_no_color ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FL
 target_link_libraries(combine ${catkin_LIBRARIES})
 target_link_libraries(vision_no_walls ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FLANN_LIBRARIES} ${HDF5_hdf5_LIBRARY} ${catkin_LIBRARIES})
 
+target_link_libraries(vision_no_walls_barcode ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FLANN_LIBRARIES} ${HDF5_hdf5_LIBRARY} ${catkin_LIBRARIES})
+
 #target_link_libraries (cluster_extraction ${catkin_LIBRARIES})
 #target_link_libraries (cluster_extraction ${PCL_LIBRARIES})
-
-
-
-
- 
-
-
-
-
 
 
 #############
